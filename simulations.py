@@ -1,125 +1,104 @@
-import random
-
+from unicodedata import name
+import random 
 import numpy as np
 from scipy.stats import norm
 
-# start random generator
-random.seed(1)
-
-#Brownian motion
-"""
- Takes: The number of no of paths: no of diff stokes to get path
-        The number of no of paths: time duration
-        mu: % annual return 
-        std: standerd divition for path
-        init_p : stating value
-        dt : time difference before next point
-        
- Returns: all the paths 
  
-"""
+class OptionSimulation:
+    seed_state = 10 #Seed state for all the simulations 
+    trading_days = 252 #Number of trading days in one fiscal year 
 
-def brownian_sim(num_path, num_period, mu, std, init_p, dt):
-    z = np.random.normal(size=(num_path, num_period))
+    random.seed(seed_state) #Set seed state 
 
-    a_price = np.zeros((num_path, num_period))
-    a_price[:, 0] = init_p
+    def __init__(self, init_price, sample_size):
+        self.init_price = init_price  #S_0
+        self.sample_size = sample_size #Number of episodes we wish to have 
+        self.ttm = None #Time to maturity array that will be used for BSM pricing 
+        
 
-    for t in range(num_period - 1):
-        a_price[:, t + 1] = a_price[:, t] * np.exp(
-            (mu - (std ** 2) / 2) * dt + std * np.sqrt(dt) * z[:, t]
-        )
-    return a_price
+    def GBM(self, T, D, std, time_increment=int):
+        '''
+        Simulates Geometric Brownian Motion with pre-specified parameters of mu = 0.05 and dt = 0.01 
 
+        Parameters: 
+            T : Number of time-steps in one episode 
+            D : Number of time frames in a given time step 
+            std : The standard deviation for the simulation process 
+            time_increment: The time increment for the time to expiry 
 
+            Example: There are T*D days left to expiry, and we want to increment the days to expiry 
+            under 1-day increments, then the days will be incremented as 
 
-# BSM Call Option Pricing Formula & BS Delta formula
-'''
-Takes: av : Annual Volatility
-       T : time to maturity
-       S : Stock path (which we would get from #brownian_sim function)
-       K : Option Strike Price
-       r : Annual Risk Free Rate
-       q : Annual Dividend (which would be 0 as we are considering risk free)
+            [T*D, T*D-1, T*D-2,....,T*D-T*D]
 
-Returns: 1) bs_price : option price paths (num_path x num_period)
-         2) b_delta : delta (num_path x num_period)
+        Returns: 
+            A list of simulated prices from GBM of size 'self.sample_size'.
 
-'''
-
-def bs_call(av, T, S, K, r, q):
-    
-    d1 = (np.log(S / K) + (r - q + iv * iv / 2) * T) / (iv * np.sqrt(T))
-    d2 = d1 - iv * np.sqrt(T)
-    
-    bs_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-    
-    bs_delta = np.exp(-q * T) * norm.cdf(d1)
-    
-    return bs_price, bs_delta
+        How the periods are computed: 
+            Suppose we have 10 days of trading, with each day having 5 intervals, then 
+            the total number of observations will be 10*5 = 50 simulated observations per episode
+        '''
+        mu = 0.05 #Initialize the stochastic process with a mean of 0.05
+        dt = 0.01 #Keep a drift factor to a realistic value of 0.01 
+        num_period = T*D
+        self.ttm = np.arange(num_period,0,-time_increment) 
 
 
+        z = np.random.normal(size=(self.sample_size, num_period))
 
-def get_sim_path(M, freq, np_seed, num_sim):
-    """ Return simulated data: a tuple of three arrays
-        M: initial time to maturity
-        freq: trading freq in unit of day, e.g. freq=2: every 2 day; freq=0.5 twice a day;
-        np_seed: numpy random seed
-        num_sim: number of simulation path
-        1) asset price paths (num_path x num_period)
-        2) option price paths (num_path x num_period)
-        3) delta (num_path x num_period)
-    """
-    # set the np random seed
-    np.random.seed(np_seed)
+        a_price = np.zeros((self.sample_size, num_period))
+        a_price[:, 0] = self.init_price
 
-    # Trading Freq per day; passed from function parameter
-    # freq = 2
+        for t in range(num_period - 1):
+            a_price[:, t + 1] = a_price[:, t] * np.exp(
+                (mu - (std ** 2) / 2) * dt + std * np.sqrt(dt) * z[:, t]
+            )
+        return a_price
 
-    # Annual Trading Day
-    T = 250
 
-    # Simulation Time Step
-    dt = 0.004 * freq
+    # BSM Call Option Pricing Formula & BS Delta formula
+    def BS_call(self, T, S, K, sigma, r, q):
 
-    # Option Day to Maturity; passed from function parameter
-    # M = 60
+        '''
+        Computes the price of an European Option using the Black-Scholes equation
 
-    # Number of period
-    num_period = int(M / freq)
+        Parameters: 
+            T : Time remaining to expiry 
+            S : Underlying price 
+            K : Strike price
+            sigma : Volatility 
+            r : Risk-free interest rate 
+            q : Continuously compounded dividend rate 
 
-    # Number of simulations; passed from function parameter
-    # num_sim = 1000000
+        Returns: 
+            bs_price: The BS computed price of the call option (num_path x num_period)
+            bs_delta: The BS computed Delta of the call option (num_path x num_period)
+        '''
+        
+        d1 = (np.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * np.sqrt(T))
+        d2 = d1 - sigma * np.sqrt(T)
+        
+        bs_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+        bs_delta = np.exp(-q * T) * norm.cdf(d1)
+        
+        return bs_price, bs_delta
 
-    # Annual Return
-    mu = 0.05
-    
-    # Annual Volatility
-    vol = 0.2
-    
-    # Initial Asset Value
-    S = 100
 
-    # Option Strike Price
-    K = 100
+if __name__ == "__main__":
+    '''
+    We simulate 50 different GBM series with an initial price of 100, for a total of 100 timepoints 
+    stamped under 10-tick intervals, and a time increment of 1.
 
-    # Annual Risk Free Rate
-    r = 0
+    Initial parameters: 
 
-    # Annual Dividend
-    q = 0
+    Sigma: 0.05 
+    K: 100 
+    r: 0
+    q: 0
 
-    # asset price 2-d array
-    print("1. generate asset price paths")
-    a_price = brownian_sim(num_sim, num_period + 1, mu, vol, S, dt)
-
-    # time to maturity "rank 1" array: e.g. [M, M-1, ..., 0]
-    ttm = np.arange(M, -freq, -freq)
-
-    # BS price 2-d array and bs delta 2-d array
-    print("2. generate BS price and delta")
-    bs_price, bs_delta = bs_call(vol, ttm / T, a_price, K, r, q)
-
-    print("simulation done!")
-
-    return a_price, bs_price, bs_delta
+    We only use Delta as one of the computed parameters for the training phase
+    '''
+    optsim = OptionSimulation(init_price=100, sample_size=50)
+    sim_prices = optsim.GBM(10,10,0.05,time_increment=1)
+    days_to_expiry = optsim.ttm/optsim.trading_days #Get the days to expiry array 
+    call_prices, call_deltas = optsim.BS_call(days_to_expiry,sim_prices,100,0.05,0,0)
