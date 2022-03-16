@@ -60,7 +60,7 @@ class OptionSimulation:
     def BS_call(self, T, S, K, sigma, r, q):
 
         '''
-        Computes the price of an European Option using the Black-Scholes equation
+        Computes the price of an European Call Option using the Black-Scholes equation
 
         Parameters: 
             T : Time remaining to expiry 
@@ -78,10 +78,36 @@ class OptionSimulation:
         d1 = (np.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * np.sqrt(T))
         d2 = d1 - sigma * np.sqrt(T)
         
-        bs_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-        bs_delta = np.exp(-q * T) * norm.cdf(d1)
+        call_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+        call_delta = np.exp(-q * T) * norm.cdf(d1)
         
-        return bs_price, bs_delta
+        return call_price, call_delta
+
+
+    def BS_put(self, T, S, K, sigma, r, q):
+
+        '''
+        Computes the price of a European Put Option using the Black-Scholes equation
+        
+        Parameters: 
+            T : Time remaining to expiry 
+            S : Underlying price 
+            K : Strike price
+            sigma : Volatility 
+            r : Risk-free interest rate 
+            q : Continuously compounded dividend rate 
+
+        Returns: 
+            bs_price: The BS computed price of the put option (num_path x num_period)
+            bs_delta: The BS computed Delta of the put option (num_path x num_period)
+        '''
+        d1 = (np.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * np.sqrt(T))
+        d2 = d1 - sigma * np.sqrt(T)
+
+        put_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1) 
+        put_delta = np.exp(-q * T) * (norm.cdf(d1)-1)
+        
+        return put_price, put_delta
 
 
 if __name__ == "__main__":
