@@ -68,7 +68,6 @@ class TradingEnv(gym.Env):
         return rwd 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt 
     env = TradingEnv(num_simulations=100,num_contracts=5,multiplier=1.0,
     tick_size=0.1,kappa=0.1)
 
