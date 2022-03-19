@@ -6,8 +6,6 @@ from scipy.stats import norm
  
 class OptionSimulation:
     seed_state = 10 #Seed state for all the simulations 
-    trading_days = 252 #Number of trading days in one fiscal year 
-
     random.seed(seed_state) #Set seed state 
 
     def __init__(self, init_price, sample_size):
@@ -111,6 +109,7 @@ class OptionSimulation:
 
 
 if __name__ == "__main__":
+    # import matplotlib.pyplot as plt 
     '''
     We simulate 50 different GBM series with an initial price of 100, for a total of 100 timepoints 
     stamped under 10-tick intervals, and a time increment of 1.
@@ -125,6 +124,9 @@ if __name__ == "__main__":
     We only use Delta as one of the computed parameters for the training phase
     '''
     optsim = OptionSimulation(init_price=100, sample_size=50)
-    sim_prices = optsim.GBM(10,10,0.05,time_increment=1)
+    sim_prices = optsim.GBM(10,5,0.05,time_increment=1)
     days_to_expiry = optsim.ttm/optsim.trading_days #Get the days to expiry array 
     call_prices, call_deltas = optsim.BS_call(days_to_expiry,sim_prices,100,0.05,0,0)
+    # plt.plot(call_prices[0])
+    # plt.show()
+    
