@@ -33,9 +33,9 @@ class TradingEnv(gym.Env):
 
         os = OptionSimulation(100,self.num_simulations) 
 
-        self.sim_prices = os.GBM(50,5,0.5,time_increment=1)
+        self.sim_prices = os.GBM(10,5,0.01,time_increment=1)
         self.days_to_expiry = os.ttm/self.trading_days #Creates an array of days left to expiry 
-        self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry,self.sim_prices,10,0.05,0,0)
+        self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry,self.sim_prices,100,0.05,0,0)
 
         #Action space (Discrete)
         self.num_actions = self.num_contracts*self.num_of_shares #Number of actions 
@@ -68,8 +68,8 @@ class TradingEnv(gym.Env):
         return rwd 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt 
     env = TradingEnv(num_simulations=100,num_contracts=5,multiplier=1.0,
     tick_size=0.1,kappa=0.1)
-
 
 

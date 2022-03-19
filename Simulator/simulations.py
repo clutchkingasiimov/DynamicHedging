@@ -6,6 +6,7 @@ from scipy.stats import norm
  
 class OptionSimulation:
     seed_state = 10 #Seed state for all the simulations 
+    trading_days = 252
     random.seed(seed_state) #Set seed state 
 
     def __init__(self, init_price, sample_size):
@@ -14,13 +15,13 @@ class OptionSimulation:
         self.ttm = None #Time to maturity array that will be used for BSM pricing 
         
 
-    def GBM(self, T, D, std, time_increment=int):
+    def GBM(self, T, std, time_increment=int):
         '''
         Simulates Geometric Brownian Motion with pre-specified parameters of mu = 0.05 and dt = 0.01 
 
         Parameters: 
-            T : Number of time-steps in one episode 
-            D : Number of time frames in a given time step 
+            T : Number of trading days
+            # D : Number of time frames in a given time step (Redacted)
             std : The standard deviation for the simulation process 
             time_increment: The time increment for the time to expiry 
 
@@ -38,16 +39,16 @@ class OptionSimulation:
         '''
         mu = 0.05 #Initialize the stochastic process with a mean of 0.05
         dt = 0.01 #Keep a drift factor to a realistic value of 0.01 
-        num_period = T*D
-        self.ttm = np.arange(num_period,0,-time_increment) 
+        # num_period = T*D
+        self.ttm = np.arange(T,0,-time_increment) 
 
 
-        z = np.random.normal(size=(self.sample_size, num_period))
+        z = np.random.normal(size=(self.sample_size, T))
 
-        a_price = np.zeros((self.sample_size, num_period))
+        a_price = np.zeros((self.sample_size, T))
         a_price[:, 0] = self.init_price
 
-        for t in range(num_period - 1):
+        for t in range(T - 1):
             a_price[:, t + 1] = a_price[:, t] * np.exp(
                 (mu - (std ** 2) / 2) * dt + std * np.sqrt(dt) * z[:, t]
             )
@@ -109,6 +110,7 @@ class OptionSimulation:
 
 
 if __name__ == "__main__": 
+    import matplotlib.pyplot as plt 
     '''
     We simulate 50 different GBM series with an initial price of 100, for a total of 100 timepoints 
     stamped under 10-tick intervals, and a time increment of 1.
@@ -123,7 +125,8 @@ if __name__ == "__main__":
     We only use Delta as one of the computed parameters for the training phase
     '''
     optsim = OptionSimulation(init_price=100, sample_size=50)
-    sim_prices = optsim.GBM(10,5,0.05,time_increment=1)
+    sim_prices = optsim.GBM(50,0.05,time_increment=1)
     days_to_expiry = optsim.ttm/optsim.trading_days #Get the days to expiry array 
     call_prices, call_deltas = optsim.BS_call(days_to_expiry,sim_prices,100,0.05,0,0)
+
     
