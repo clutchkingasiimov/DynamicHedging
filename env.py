@@ -62,11 +62,73 @@ class TradingEnv(gym.Env):
         Parameters:
             pt: Price at time 't'
             n: Number of shares at time 't'
+
+        Returns:
+            rwd: The reward value from the trade
         '''
         wt = self._wealth_of_trade(pt, n)
         rwd = wt - (self.kappa*0.5)*(wt**2) 
-        return rwd 
+        return rwd
 
+    def reset(self, path):
+        '''
+        Resets the environment in order to start a new episode for the simulation
+
+        Parameters:
+            path: The path the agent is following 
+
+        Returns: 
+            self.state: The state vector of the agent
+        '''
+        #repeatedly go through available simulated paths (if needed)
+        self.t = 0
+        self.path = path
+        ttm = self.days_to_expiry[0]-1
+
+        nt = 100 #no of shares
+        #print(self.sim_prices[self.path])
+        #print(self.sim_prices[self.path,0])
+        #print(self.option_price_path[self.path,self.t])
+
+        price =  round(self.sim_prices[self.path,self.t])
+        action = -round(100*(self.option_delta_path[self.path, self.t])) - nt
+        nt = action
+        
+        self.state = [price , action, ttm, nt]
+
+        return self.state
+
+    def step(self,action):
+        '''
+        Step function to allow the agent to transition into the next state of the episode 
+
+        Parameters: 
+            action: The action the agent takes
+
+        Returns: 
+            self.state: The state vector of the agent 
+            R: The reward value 
+            done: Boolean value of whether the episode is over or not
+        '''
+        
+        self.t = self.t + 1 
+        price =  round(self.sim_prices[self.path,self.t],2)
+        nt = action
+        ttm = self.days_to_expiry[self.t] 
+        action = -100*round(self.option_delta_path[self.path, self.t]) - nt
+        R = self.reward(price, nt)
+        nt = action 
+        
+        self.state = [price , action, ttm, nt]
+        if ttm == self.t+1:
+            done = True
+        else:
+            done = False
+        
+        return self.state, R, done
+
+
+    
 if __name__ == "__main__":
     import matplotlib.pyplot as plt 
     env = TradingEnv(num_simulations=100,num_contracts=5,multiplier=1.0,
