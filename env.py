@@ -25,18 +25,19 @@ class TradingEnv(gym.Env):
     def __init__(self,num_simulations=int,num_contracts=int,
     multiplier=float,tick_size=float,kappa=float):
 
-        self.num_simulations = num_simulations
+        self.num_simulations = 100
         self.num_contracts = num_contracts 
         self.multiplier = multiplier 
         self.tick_size = tick_size
         self.kappa = kappa  
 
         os = OptionSimulation(100,self.num_simulations) 
-
-        self.sim_prices = os.GBM(10,5,0.01,time_increment=1)
-        self.days_to_expiry = os.ttm/self.trading_days #Creates an array of days left to expiry 
-        self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry,self.sim_prices,100,0.05,0,0)
-
+        
+        #can add a maturity term
+        self.sim_prices = os.GBM(50,0.5,time_increment=1)
+        self.days_to_expiry = os.ttm #Creates an array of days left to expiry 
+        self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry,self.sim_prices,100,0.01,0,0)
+        
         #Action space (Discrete)
         self.num_actions = self.num_contracts*self.num_of_shares #Number of actions 
         self.action_space = spaces.Discrete(1001,start=-self.num_actions) #Discrete action space 
@@ -62,65 +63,49 @@ class TradingEnv(gym.Env):
         Parameters:
             pt: Price at time 't'
             n: Number of shares at time 't'
-
-        Returns:
-            rwd: The reward value from the trade
         '''
         wt = self._wealth_of_trade(pt, n)
         rwd = wt - (self.kappa*0.5)*(wt**2) 
-        return rwd
-
+        return rwd 
+    
     def reset(self, path):
-        '''
-        Resets the environment in order to start a new episode for the simulation
-
-        Parameters:
-            path: The path the agent is following 
-
-        Returns: 
-            self.state: The state vector of the agent
-        '''
-        #repeatedly go through available simulated paths (if needed)
+        # repeatedly go through available simulated paths (if needed)
         self.t = 0
         self.path = path
         ttm = self.days_to_expiry[0]-1
 
-        nt = 100 #no of shares
+        n = 500 #no of shares
         #print(self.sim_prices[self.path])
         #print(self.sim_prices[self.path,0])
-        #print(self.option_price_path[self.path,self.t])
+        #print(self.option_delta_path[self.path,self.t])
+        
+        #K : strike price (to be given)
 
         price =  round(self.sim_prices[self.path,self.t])
-        action = -round(100*(self.option_delta_path[self.path, self.t])) - nt
-        nt = action
+        self.nt = n
+        price_ttm = round(self.sim_prices[self.path,ttm])
         
-        self.state = [price , action, ttm, nt]
+        self.state = [price , ttm, self.nt, price_ttm]
 
         return self.state
+    
+    def delta(self, ttm):
+        delta = self.option_delta_path[self.path, ttm]
+        return delta
 
     def step(self,action):
-        '''
-        Step function to allow the agent to transition into the next state of the episode 
-
-        Parameters: 
-            action: The action the agent takes
-
-        Returns: 
-            self.state: The state vector of the agent 
-            R: The reward value 
-            done: Boolean value of whether the episode is over or not
-        '''
         
         self.t = self.t + 1 
-        price =  round(self.sim_prices[self.path,self.t],2)
-        nt = action
+        price =  round(self.sim_prices[self.path,self.t])
+        self.nt = self.nt + action
         ttm = self.days_to_expiry[self.t] 
-        action = -100*round(self.option_delta_path[self.path, self.t]) - nt
-        R = self.reward(price, nt)
-        nt = action 
+        price_ttm = round(self.sim_prices[self.path,ttm])
         
-        self.state = [price , action, ttm, nt]
-        if ttm == self.t+1:
+        R = round(self.reward(price, self.nt)) 
+        
+        self.state = [price , ttm, self.nt, price_ttm]
+        
+        if ttm == 0:
             done = True
         else:
             done = False
