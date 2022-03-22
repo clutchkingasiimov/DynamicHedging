@@ -34,7 +34,7 @@ class TradingEnv(gym.Env):
         os = OptionSimulation(100,self.num_simulations) 
         
         #can add a maturity term
-        self.sim_prices = os.GBM(50,0.5,time_increment=1)
+        self.sim_prices = os.GBM(50,0.05,time_increment=1)
         self.days_to_expiry = os.ttm #Creates an array of days left to expiry 
         self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry,self.sim_prices,100,0.01,0,0)
         
