@@ -11,7 +11,7 @@ class TradingEnv(gym.Env):
     trading_days = 252 #Number of trading days in one year 
     num_of_shares = 100 #Vanilla options contract size
     
-    def __init__(self,num_simulations=int,num_contracts=int,
+    def __init__(self,num_episodes=int,num_contracts=int,
     multiplier=float,tick_size=float,kappa=float):
         
         """
@@ -26,7 +26,7 @@ class TradingEnv(gym.Env):
             kappa: The risk factor of the portfolio
         """
 
-        self.num_simulations = num_simulations
+        self.num_episodes = num_episodes
         self.num_contracts = num_contracts 
         self.multiplier = multiplier 
         self.tick_size = tick_size
