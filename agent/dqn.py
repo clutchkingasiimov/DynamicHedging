@@ -1,7 +1,6 @@
-import gym 
 import random 
 import numpy as np 
-from collections import deque
+from collections import deque, defaultdict
 from keras.models import Sequential
 from keras.layers import Dense, BatchNormalization
 from keras.optimizers import Adam
@@ -73,15 +72,46 @@ class DQN:
             action = np.argmax(q_value[0])
         return action
 
-    def update_replay_memory(self, state, action, reward, next_state, done):
-        #Updates the replay memory for training
-        update_vector = (state,action,reward,next_state,done)
-        self.memory_replay.append(update_vector)
+    def update_replay_memory(self, state_vector):
+        #Updates the memory replay with the state_vector 
+        if len(state_vector) != 5:
+            raise ValueError('The size of the state vector must be 5')
+        self.memory_replay.append(state_vector)
 
         #Perform epsilon-decay 
         if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay 
+            self.epsilon *= self.epsilon_decay
 
+    def train_agent(self):
+        batch_size = min(self.batch_size, len(self.memory_replay))
+        #Sampling a random minibatch of transition state 
+        mini_batch = random.sample(self.memory, batch_size)
+
+        update_input = np.zeros((batch_size, self.state_size))
+        update_target = np.zeros((batch_size, self.state_size))
+        
+        #Store the transition information in a defaultdict of list type
+        self.transition = defaultdict(list)
+
+        for i in range(self.batch_size):
+            update_input[i] = mini_batch[i][0]
+            self.transition['Action'].append(mini_batch[i][1])
+            self.transition['Reward'].append(mini_batch[i][2])
+            update_target[i] = mini_batch[i][3]
+            self.transition['Done'].append(mini_batch[i][4])
+
+        target = self.prediction_model.predict(update_input)
+        target_val = self.target_model.predict(update_target)
+
+        for i in range(self.batch_size):
+            #Q learning: Use off-policy to find the max Q-value at S' from target model
+            if self.transition['Done'][i]:
+                target[i][self.transition['Action'][i]] = self.transition['Reward'][i]
+            else:
+                target[i][self.transition['Action'][i]] = self.transition['Reward'][i] + self.discount_factor * np.max(target_val[i])
+
+        #Fit the model
+        self.prediction_model.fit(update_input, target, batch_size=self.batch_size, epochs=1)
 
 if __name__ == "__main__":
     dqn = DQN()
