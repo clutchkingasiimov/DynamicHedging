@@ -22,10 +22,10 @@ class TradingEnv(gym.Env):
         kappa: The risk factor of the portfolio
     """
 
-    def __init__(self,num_simulations=int,num_contracts=int,
+    def __init__(self,total_episodes=int,num_contracts=int,
     multiplier=float,tick_size=float,kappa=float):
 
-        self.num_simulations = 100
+        self.num_simulations = total_episodes
         self.num_contracts = num_contracts 
         self.multiplier = multiplier 
         self.tick_size = tick_size
@@ -68,10 +68,10 @@ class TradingEnv(gym.Env):
         rwd = wt - (self.kappa*0.5)*(wt**2) 
         return rwd 
     
-    def reset(self, path):
+    def reset(self, episode):
         # repeatedly go through available simulated paths (if needed)
         self.t = 0
-        self.path = path
+        self.path = episode
         ttm = self.days_to_expiry[0]-1
 
         n = 500 #no of shares
@@ -105,13 +105,15 @@ class TradingEnv(gym.Env):
         
         self.state = [price , ttm, self.nt, price_ttm]
         
-        if ttm == 0:
+        if ttm == 1 & self.path == (self.num_simulations-1):
             done = True
+        elif ttm == 1:
+            episode = self.path + 1 
+            self.reset(episode)
+            done = False
         else:
             done = False
-        
         return self.state, R, done
-
 
     
 if __name__ == "__main__":
