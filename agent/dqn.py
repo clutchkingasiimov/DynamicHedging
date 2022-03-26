@@ -8,19 +8,19 @@ from keras.optimizers import Adam
 
 class DQN:
 
-    def __init__(self,state,action,load_model=bool):
+    def __init__(self,state_size,action_size,load_model=bool):
 
         '''
         Initializes DQN for training the RL agent 
 
         Parameters: 
-            state: The state vector of the environment 
-            action: The action set taken by the agent 
+            state: The state vector dimension of the environment 
+            action: The action set dimension taken by the agent 
             load_model: Whether to load a previously trained model
         '''
         #Dimension of the state and action vector
-        self.state_size = state 
-        self.action = action
+        self.state_size = state_size 
+        self.action = action_size
         self.load_model = load_model 
 
         #Setting up the hyperparameters 
@@ -113,8 +113,6 @@ class DQN:
         #Fit the model
         self.prediction_model.fit(update_input, target, batch_size=self.batch_size, epochs=1)
 
-if __name__ == "__main__":
-    dqn = DQN()
 
     
 
