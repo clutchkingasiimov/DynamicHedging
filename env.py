@@ -4,7 +4,7 @@ import gym
 from gym import spaces 
 from gym.utils import seeding 
 import numpy as np 
-from Simulator.simulations import OptionSimulation
+from simulations import OptionSimulation
 
 
 class TradingEnv(gym.Env):
