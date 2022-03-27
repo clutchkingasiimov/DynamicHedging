@@ -31,7 +31,7 @@ class TradingEnv(gym.Env):
         os = OptionSimulation(100,self.total_episodes) 
         
         #can add a maturity term
-        self.sim_prices = os.GBM(50,0.1,time_increment=1)
+        self.sim_prices = os.GBM(50,0.01,time_increment=1)
         self.days_to_expiry_normalized = os.ttm/self.trading_days #Only to be used for the calculation of BS call price
         self.days_to_expiry = os.ttm #Creates an array of days left to expiry 
         self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry_normalized,self.sim_prices,100,0.01,0,0)
@@ -113,7 +113,6 @@ class TradingEnv(gym.Env):
         self.nt = self.num_of_shares #Number of shares at time 't'
         # price_ttm = round(self.sim_prices[self.path,ttm])
         self.state = [price, ttm, self.nt]
-        self.state_space = len(self.state) #Store the size of the state vector 
 
         return self.state
     
@@ -136,7 +135,7 @@ class TradingEnv(gym.Env):
         '''
         self.t = self.t + 1 
         price =  round(self.sim_prices[self.path,self.t],2)
-        self.nt = self.nt + action
+        self.nt += action
         ttm = self.days_to_expiry[self.t] 
         # price_ttm = round(self.sim_prices[self.path,ttm],2)
         

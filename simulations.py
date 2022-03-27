@@ -137,7 +137,4 @@ if __name__ == "__main__":
     # print(days_to_expiry.shape)
     # print(optsim.ttm)
 
-    # plt.plot(call_prices[0])
-    # plt.show()
-
     
