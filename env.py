@@ -39,6 +39,7 @@ class TradingEnv(gym.Env):
         #Action space (Discrete)
         self.num_actions = self.num_contracts*self.num_of_shares #Number of actions 
         self.action_range = (self.num_actions * 2)+1 
+        self.state_space = 3 
         self.action_space = spaces.Discrete(self.action_range,start=-self.num_actions) #Discrete action space 
 
         #Track the index of simulated path is use 
@@ -59,7 +60,7 @@ class TradingEnv(gym.Env):
 
     def _cost_of_trade(self,n):
         #n: Number of shares 
-        cost = self.multiplier * self.tick_size * (np.abs(n) * 0.01*n*n)
+        cost = self.multiplier * self.tick_size * (np.abs(n) + 0.01*n*n)
         return cost 
 
     def _wealth_of_trade(self,pt,n):
@@ -108,10 +109,11 @@ class TradingEnv(gym.Env):
         self.path = (self.sim_episode+1) % self.total_episodes
         ttm = self.days_to_expiry[0]
 
-        price =  round(self.sim_prices[self.path,self.t])
+        price = round(self.sim_prices[self.path,self.t])
         self.nt = self.num_of_shares #Number of shares at time 't'
         # price_ttm = round(self.sim_prices[self.path,ttm])
         self.state = [price, ttm, self.nt]
+        self.state_space = len(self.state) #Store the size of the state vector 
 
         return self.state
     
@@ -143,9 +145,9 @@ class TradingEnv(gym.Env):
 
         #If tomorrow is the end of episode
         if ttm == 0:
-            done = 1
+            done = True
         else:
-            done = 0
+            done = False
 
         return self.state, reward, done
 
