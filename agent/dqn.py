@@ -32,10 +32,10 @@ class DQN:
         self.epsilon_decay = 0.999
         self.epsilon_min = 0.01
         self.batch_size = 100
-        self.train_start = 8000
+        self.train_start = 1000
 
         #Memory size for experience replay 
-        self.memory_replay = deque(maxlen=20_000)
+        self.memory_replay = deque(maxlen=2000)
         #Store the transition information in a defaultdict of list type
         self.transition = defaultdict(list)
 
@@ -50,8 +50,9 @@ class DQN:
     def build_agent(self):
         model = Sequential()
         model.add(Dense(8, input_dim=self.state_size, activation='relu'))
+        model.add(BatchNormalization())
         model.add(Dense(8,activation='relu'))
-        # model.add(BatchNormalization())
+        model.add(BatchNormalization())
         # model.add(Dense(16,activation='relu'))
         # model.add(BatchNormalization())
         # model.add(Dense(16,activation='relu'))

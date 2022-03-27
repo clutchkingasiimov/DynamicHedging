@@ -20,7 +20,7 @@ agent = DQN(STATE_SPACE,ACTION_SPACE,load_model=False)
 mean_reward_per_epoch = []
 rewards = []
 
-for i in range(10):
+for i in range(5):
     #Generate new data by reseting the simulation
     print(f'Epoch {i+1}')
     env.set_params()
