@@ -1,11 +1,7 @@
-from tracemalloc import start
-from unicodedata import name
 import gym 
 from gym import spaces 
-from gym.utils import seeding 
 import numpy as np 
 from simulations import OptionSimulation
-
 
 class TradingEnv(gym.Env):
     trading_days = 252 #Number of trading days in one year 

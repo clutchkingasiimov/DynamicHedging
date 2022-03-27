@@ -20,7 +20,7 @@ class DQN:
         '''
         #Dimension of the state and action vector
         self.state_size = state_size 
-        self.action = action_size
+        self.action_size = action_size
         self.load_model = load_model 
 
         #Setting up the hyperparameters 
@@ -34,6 +34,8 @@ class DQN:
 
         #Memory size for experience replay 
         self.memory_replay = deque(maxlen=1000)
+        #Store the transition information in a defaultdict of list type
+        self.transition = defaultdict(list)
 
         #Create the main model and the target model
         self.prediction_model = self.build_agent()
@@ -62,6 +64,9 @@ class DQN:
 
     #Initialize the agent by taking an action under epsilon-greedy policy 
     def initialize_agent(self, state):
+        '''
+        Initialize the agent for training under epsilon-greedy policy
+        '''
         random_action_prob = np.random.random()
         if random_action_prob <= self.epsilon:
             #Choose a random action to explore 
@@ -89,9 +94,6 @@ class DQN:
 
         update_input = np.zeros((batch_size, self.state_size))
         update_target = np.zeros((batch_size, self.state_size))
-        
-        #Store the transition information in a defaultdict of list type
-        self.transition = defaultdict(list)
 
         for i in range(self.batch_size):
             update_input[i] = mini_batch[i][0]
