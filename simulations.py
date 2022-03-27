@@ -12,9 +12,9 @@ class OptionSimulation:
     def __init__(self, init_price, sample_size):
         self.init_price = init_price  #S_0
         self.sample_size = sample_size #Number of episodes we wish to have 
-        self.ttm = None #Time to maturity array that will be used for BSM pricing 
+        self.ttm = None #Time to maturity array that will be used for BSM pricing
         
-
+        
     def GBM(self, T, std, time_increment=int):
         '''
         Simulates Geometric Brownian Motion with pre-specified parameters of mu = 0.05 and dt = 0.01 
@@ -40,18 +40,21 @@ class OptionSimulation:
         mu = 0.05 #Initialize the stochastic process with a mean of 0.05
         dt = 0.01 #Keep a drift factor to a realistic value of 0.01 
         # num_period = T*D
-        self.ttm = np.arange(T,0,-time_increment) 
+        self.ttm = np.arange(T,-1,-time_increment) 
 
 
-        z = np.random.normal(size=(self.sample_size, T))
+        z = np.random.normal(size=(self.sample_size, T+1))
 
-        a_price = np.zeros((self.sample_size, T))
+        a_price = np.zeros((self.sample_size, T+1))
         a_price[:, 0] = self.init_price
 
-        for t in range(T - 1):
+        for t in range(T):
             a_price[:, t + 1] = a_price[:, t] * np.exp(
                 (mu - (std ** 2) / 2) * dt + std * np.sqrt(dt) * z[:, t]
             )
+
+        # if a_price.shape[1] != T+1:
+        #     raise AssertionError(f"The internal dimension of the GBM is {a_price.shape[0]}!")
         return a_price
 
 
@@ -100,11 +103,15 @@ class OptionSimulation:
             bs_price: The BS computed price of the put option (num_path x num_period)
             bs_delta: The BS computed Delta of the put option (num_path x num_period)
         '''
-        d1 = (np.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * np.sqrt(T))
-        d2 = d1 - sigma * np.sqrt(T)
+        try:
+            d1 = (np.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * np.sqrt(T))
+            d2 = d1 - sigma * np.sqrt(T)
 
-        put_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1) 
-        put_delta = np.exp(-q * T) * (norm.cdf(d1)-1)
+            put_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1) 
+            put_delta = np.exp(-q * T) * (norm.cdf(d1)-1)
+        
+        except RuntimeWarning:
+            print ("Zero division negated!")
         
         return put_price, put_delta
 
@@ -128,5 +135,11 @@ if __name__ == "__main__":
     sim_prices = optsim.GBM(50,0.05,time_increment=1)
     days_to_expiry = optsim.ttm/optsim.trading_days #Get the days to expiry array 
     call_prices, call_deltas = optsim.BS_call(days_to_expiry,sim_prices,100,0.05,0,0)
+    print(sim_prices.shape)
+    print(days_to_expiry.shape)
+    print(optsim.ttm)
+
+    plt.plot(call_prices[0])
+    plt.show()
 
     
