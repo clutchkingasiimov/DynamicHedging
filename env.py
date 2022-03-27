@@ -32,7 +32,7 @@ class TradingEnv(gym.Env):
         self.tick_size = tick_size
         self.kappa = kappa  
 
-        os = OptionSimulation(100,self.num_simulations) 
+        os = OptionSimulation(100,self.total_episodes) 
         
         #can add a maturity term
         self.sim_prices = os.GBM(50,0.1,time_increment=1)
@@ -45,6 +45,11 @@ class TradingEnv(gym.Env):
         self.action_range = (self.num_actions * 2)+1 
         self.action_space = spaces.Discrete(self.action_range,start=-self.num_actions) #Discrete action space 
 
+        #Track the index of simulated path is use 
+        self.sim_episode = -1
+        #Track time step within an episode
+        self.t = None 
+
         if self.num_contracts > 10:
             raise ValueError("The maximum number of contracts in the simulation cannot be more than 10.")
 
@@ -53,7 +58,7 @@ class TradingEnv(gym.Env):
         cls.num_of_shares = shares 
         cls.trading_days = days 
         print(f'Number of shares per contract changed to {cls.num_of_shares} shares\n')
-        print(f'Number of trading days changed to {cls.trading_days} shares\n')
+        print(f'Number of trading days changed to {cls.trading_days} shares')
             
 
     def _cost_of_trade(self,n):
@@ -92,7 +97,7 @@ class TradingEnv(gym.Env):
         '''
         return -100 * round(self.delta(ttm)) - nt    
     
-    def reset(self, episode):
+    def reset(self):
         '''
         Resets the environment in order to start a new episode for the simulation
 
@@ -104,20 +109,19 @@ class TradingEnv(gym.Env):
         '''
         # repeatedly go through available simulated paths (if needed)
         self.t = 0
-        self.path = episode
-        ttm = self.days_to_expiry[0]-1
+        self.path = (self.sim_episode+1) % self.total_episodes
+        ttm = self.days_to_expiry[0]
 
         price =  round(self.sim_prices[self.path,self.t])
         self.nt = self.num_of_shares #Number of shares at time 't'
-        price_ttm = round(self.sim_prices[self.path,ttm])
-        
-        self.state = [price, ttm, self.nt, price_ttm]
+        # price_ttm = round(self.sim_prices[self.path,ttm])
+        self.state = [price, ttm, self.nt]
 
         return self.state
     
     def delta(self, ttm):
         #Returns the option delta 
-        delta = self.option_delta_path[self.path, ttm]
+        delta = self.option_delta_path[self.path, ttm-1]
         return delta
 
     def step(self,action):
@@ -136,25 +140,41 @@ class TradingEnv(gym.Env):
         price =  round(self.sim_prices[self.path,self.t],2)
         self.nt = self.nt + action
         ttm = self.days_to_expiry[self.t] 
-        price_ttm = round(self.sim_prices[self.path,ttm],2)
+        # price_ttm = round(self.sim_prices[self.path,ttm],2)
         
         reward = round(self.reward(price, self.nt)) 
-        self.state = [price, ttm, self.nt, price_ttm]
-        
-        if ttm == 1 & self.path == (self.num_simulations-1):
-            done = 1 #1 = True 
-        elif ttm == 1:
-            episode = self.path + 1 
-            self.reset(episode)
-            done = 0 #0 = False 
+        self.state = [price, ttm, self.nt]
+
+        #If tomorrow is the end of episode
+        if ttm == 0:
+            done = 1
         else:
             done = 0
+
         return self.state, reward, done
+
+        # if ttm == 1 & self.path == (self.num_simulations-1):
+        #     done = 1 #1 = True 
+        # elif ttm == 1:
+        #     episode = self.path + 1 
+        #     self.reset(episode)
+        #     done = 0 #0 = False 
+        # else:
+        #     done = 0
 
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt 
-    env = TradingEnv(num_simulations=100,num_contracts=5,multiplier=1.0,
+    env = TradingEnv(total_episodes=100,num_contracts=5,multiplier=1.0,
     tick_size=0.1,kappa=0.1)
+
+    state = env.reset()
+    for _ in range(50):
+        pt, ttm, nt = state
+        action = env.take_action(ttm, nt)
+        pervious_state = state
+        next_state, reward, done = env.step(action)
+        state = next_state
+        print(next_state, reward, done) 
 
 
