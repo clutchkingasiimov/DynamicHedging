@@ -3,45 +3,50 @@ from gym import spaces
 import numpy as np 
 from simulations import OptionSimulation
 
-class TradingEnv(gym.Env):
+class TradingEnv(gym.Env,OptionSimulation):
     trading_days = 252 #Number of trading days in one year 
     num_of_shares = 100 #Vanilla options contract size
     
-    def __init__(self,total_episodes=int,num_contracts=int,
-    multiplier=float,tick_size=float,kappa=float):
-        
+    def __init__(self, init_price, sample_size, num_contracts=int, multiplier=float,
+    tick_size=float, kappa=float):
+        super().__init__(init_price, sample_size)
         """
-        Trading Enviroment class with all the modules related 
-        to performing trading under a controlled simulation environment.
-
         Parameters:
-            num_simulations: The number of GBM and BS simulations to run for the agent to train on
-            num_contracts: The number of contracts the agent will hold.
-            multiplier: Float value required for the intensity of the bid-offer spread 
-            tick_size: Used for computing the cost relative to the midpoint of the bid-offer spread
-            kappa: The risk factor of the portfolio
+        init_price: The starting price point of the simulation
+        sample_size: The number of GBM and BS simulations to run for the agent to train on
+        num_contracts: The number of contracts the agent will hold.
+        multiplier: Float value required for the intensity of the bid-offer spread 
+        tick_size: Used for computing the cost relative to the midpoint of the bid-offer spread
+        kappa: The risk factor of the portfolio
         """
 
-        self.total_episodes = total_episodes
+        # os = OptionSimulation(100,self.total_episodes) 
         self.num_contracts = num_contracts 
         self.multiplier = multiplier 
         self.tick_size = tick_size
-        self.kappa = kappa  
+        self.kappa = kappa
 
-        os = OptionSimulation(100,self.total_episodes) 
-        
-        #can add a maturity term
-        self.sim_prices = os.GBM(50,0.01,time_increment=1)
-        self.days_to_expiry_normalized = os.ttm/self.trading_days #Only to be used for the calculation of BS call price
-        self.days_to_expiry = os.ttm #Creates an array of days left to expiry 
-        self.option_price_path, self.option_delta_path = os.BS_call(self.days_to_expiry_normalized,self.sim_prices,100,0.01,0,0)
-        
-        #Action space (Discrete)
+         #Action space (Discrete)
         self.num_actions = self.num_contracts*self.num_of_shares #Number of actions 
         self.action_range = (self.num_actions * 2)+1 
         self.state_space = 3 
-        self.action_space = spaces.Discrete(self.action_range,start=-self.num_actions) #Discrete action space 
+        self.action_space = spaces.Discrete(self.action_range,start=-self.num_actions) #Discrete action space   
 
+    @classmethod
+    def change_base_params(cls,shares=None,days=None):
+        cls.num_of_shares = shares 
+        cls.trading_days = days 
+        print(f'Number of shares per contract changed to {cls.num_of_shares} shares\n')
+        print(f'Number of trading days changed to {cls.trading_days} shares')
+
+
+    def set_params(self):
+        #can add a maturity term
+        self.sim_prices = super().GBM(50,0.01,time_increment=1)
+        self.days_to_expiry_normalized = self.ttm/self.trading_days #Only to be used for the calculation of BS call price
+        self.days_to_expiry = self.ttm #Creates an array of days left to expiry 
+        self.option_price_path, self.option_delta_path = super().BS_call(self.days_to_expiry_normalized,self.sim_prices,100,0.01,0,0)
+        
         #Track the index of simulated path is use 
         self.sim_episode = -1
         #Track time step within an episode
@@ -50,13 +55,6 @@ class TradingEnv(gym.Env):
         if self.num_contracts > 10:
             raise ValueError("The maximum number of contracts in the simulation cannot be more than 10.")
 
-    @classmethod
-    def change_base_params(cls,shares=None,days=None):
-        cls.num_of_shares = shares 
-        cls.trading_days = days 
-        print(f'Number of shares per contract changed to {cls.num_of_shares} shares\n')
-        print(f'Number of trading days changed to {cls.trading_days} shares')
-            
 
     def _cost_of_trade(self,n):
         #n: Number of shares 
@@ -106,7 +104,7 @@ class TradingEnv(gym.Env):
         '''
         # repeatedly go through available simulated paths (if needed)
         self.t = 0
-        self.path = (self.sim_episode+1) % self.total_episodes
+        self.path = (self.sim_episode+1) % self.sample_size
         ttm = self.days_to_expiry[0]
 
         price = round(self.sim_prices[self.path,self.t])
