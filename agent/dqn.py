@@ -1,4 +1,5 @@
 import random 
+from tqdm import tqdm 
 import numpy as np 
 from collections import deque, defaultdict
 from tensorflow.keras.models import Sequential
@@ -9,7 +10,6 @@ from tensorflow.keras.optimizers import Adam
 class DQN:
 
     def __init__(self,state_size,action_space,load_model=bool):
-
         '''
         Initializes DQN for training the RL agent 
 
@@ -17,12 +17,13 @@ class DQN:
             state: The state vector dimension of the environment 
             action: The action set dimension taken by the agent 
             load_model: Whether to load a previously trained model
-        '''
-        #Dimension of the state and action vector
+        ''' 
+
+         #Dimension of the state and action vector
         self.state_size = state_size #Size of the state vectpr 
         self.action_space = action_space #The action space (env.Discrete object)
         self.action_size = action_space.n #Size of the action space
-        self.load_model = load_model 
+        self.load_model = load_model
 
         #Setting up the hyperparameters 
         self.discount_factor = 0.9
@@ -31,10 +32,10 @@ class DQN:
         self.epsilon_decay = 0.999
         self.epsilon_min = 0.01
         self.batch_size = 100
-        self.train_start = 1000
+        self.train_start = 8000
 
         #Memory size for experience replay 
-        self.memory_replay = deque(maxlen=50_000)
+        self.memory_replay = deque(maxlen=20_000)
         #Store the transition information in a defaultdict of list type
         self.transition = defaultdict(list)
 
@@ -45,11 +46,11 @@ class DQN:
         #Initialize the target model 
         self.update_target_model()
 
-        
     #Builds the network for DQN
     def build_agent(self):
         model = Sequential()
-        model.add(Dense(16, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(8, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(8,activation='relu'))
         # model.add(BatchNormalization())
         # model.add(Dense(16,activation='relu'))
         # model.add(BatchNormalization())
@@ -57,7 +58,7 @@ class DQN:
         # model.add(BatchNormalization())
         # model.add(Dense(16,activation='relu'))
         # model.add(BatchNormalization())
-        model.add(Dense(16,activation='relu'))
+        # model.add(Dense(16,activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
 
         #Compile model 
