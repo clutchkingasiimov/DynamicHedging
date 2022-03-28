@@ -19,7 +19,7 @@ class DQN:
             load_model: Whether to load a previously trained model
         ''' 
 
-         #Dimension of the state and action vector
+        #Dimension of the state and action vector
         self.state_size = state_size #Size of the state vectpr 
         self.action_space = action_space #The action space (env.Discrete object)
         self.action_size = action_space.n #Size of the action space
@@ -46,6 +46,10 @@ class DQN:
         #Initialize the target model 
         self.update_target_model()
 
+        #If model has to be loaded
+        if load_model:
+            self.prediction_model.load_weights("/home/sauraj/Desktop/DynamicHedging/model_saves/DQN_epoch_5.h5")
+
     #Builds the network for DQN
     def build_agent(self):
         model = Sequential()
@@ -53,13 +57,6 @@ class DQN:
         model.add(BatchNormalization())
         model.add(Dense(8,activation='relu'))
         model.add(BatchNormalization())
-        # model.add(Dense(16,activation='relu'))
-        # model.add(BatchNormalization())
-        # model.add(Dense(16,activation='relu'))
-        # model.add(BatchNormalization())
-        # model.add(Dense(16,activation='relu'))
-        # model.add(BatchNormalization())
-        # model.add(Dense(16,activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
 
         #Compile model 
@@ -73,16 +70,16 @@ class DQN:
     #Initialize the agent by taking an action under epsilon-greedy policy 
     def initialize_agent(self, state):
         '''
-        Initialize the agent for training under epsilon-greedy policy
-        '''
+        Initialize the agent for training under epsilon-greedy policy or Delta Hedging policy
+        '''            
         random_action_prob = np.random.random()
         if random_action_prob <= self.epsilon:
             #Choose a random action to explore 
             action = self.action_space.sample()
         else:
-            #Else go for the greedy off-policy action selection
+            # Else go for the greedy off-policy action selection
             q_value = self.prediction_model.predict(state)
-            action = np.argmax(q_value[0])
+            action = np.argmax(q_value[0]) - 100
         return action
 
     def update_replay_memory(self, state, action, reward, next_state, done):

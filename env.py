@@ -56,14 +56,14 @@ class TradingEnv(gym.Env,OptionSimulation):
             raise ValueError("The maximum number of contracts in the simulation cannot be more than 10.")
 
 
-    def _cost_of_trade(self,n):
+    def cost_of_trade(self,n):
         #n: Number of shares 
         cost = self.multiplier * self.tick_size * (np.abs(n) + 0.01*n*n)
         return cost 
 
-    def _wealth_of_trade(self,pt,n):
+    def wealth_of_trade(self,pt,n):
         #W_{t} = q_{t} - c_{t} (pt: Price of the stock at time 't')
-        ct = self._cost_of_trade(n)
+        ct = self.cost_of_trade(n)
         wt = pt - ct 
         return wt 
 
@@ -78,19 +78,19 @@ class TradingEnv(gym.Env,OptionSimulation):
         Returns: 
             rwd: The reward value from the trade
         '''
-        wt = self._wealth_of_trade(pt, n)
+        wt = self.wealth_of_trade(pt, n)
         rwd = wt - (self.kappa*0.5)*(wt**2) 
         return rwd 
 
-    def take_action(self,ttm,nt):
+    def take_action(self,t,nt):
         '''
         Takes the next action according to the policy
 
         Parameters: 
-            ttm: Time remaining to option's maturity 
+            t: Time index 't'
             nt: Number of shares held at time 't'
         '''
-        return -100 * round(self.delta(ttm)) - nt    
+        return -100 * round(self.delta(t)) - nt    
     
     def reset(self):
         '''
@@ -104,6 +104,7 @@ class TradingEnv(gym.Env,OptionSimulation):
         '''
         # repeatedly go through available simulated paths (if needed)
         self.t = 0
+        self.option_t = 0
         self.path = (self.sim_episode+1) % self.sample_size
         ttm = self.days_to_expiry[0]
 
@@ -114,9 +115,9 @@ class TradingEnv(gym.Env,OptionSimulation):
 
         return self.state
     
-    def delta(self, ttm):
+    def delta(self, t):
         #Returns the option delta 
-        delta = self.option_delta_path[self.path, ttm-1]
+        delta = self.option_delta_path[self.path, t]
         return delta
 
     def step(self,action):
@@ -131,7 +132,7 @@ class TradingEnv(gym.Env,OptionSimulation):
             R: The reward value 
             done: Boolean value of whether the episode is over or not
         '''
-        self.t = self.t + 1 
+        self.t += 1 
         price =  round(self.sim_prices[self.path,self.t],2)
         self.nt += action
         ttm = self.days_to_expiry[self.t] 
@@ -148,7 +149,7 @@ class TradingEnv(gym.Env,OptionSimulation):
 
         return self.state, reward, done
 
-        # if ttm == 1 & self.path == (self.num_simulations-1):
+          # if ttm == 1 & self.path == (self.num_simulations-1):
         #     done = 1 #1 = True 
         # elif ttm == 1:
         #     episode = self.path + 1 
@@ -157,19 +158,29 @@ class TradingEnv(gym.Env,OptionSimulation):
         # else:
         #     done = 0
 
+    def option_pnl(self,action):
+        self.option_t += 1
+        option_price = round(self.option_price_path[self.path,self.option_t],2)
+        profit_option = action * option_price
+        return profit_option
+         
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt 
-    env = TradingEnv(total_episodes=100,num_contracts=5,multiplier=1.0,
+    env = TradingEnv(init_price=100,sample_size=1,num_contracts=1,multiplier=1.0,
     tick_size=0.1,kappa=0.1)
 
-    state = env.reset()
-    for _ in range(50):
-        pt, ttm, nt = state
-        action = env.take_action(ttm, nt)
-        pervious_state = state
-        next_state, reward, done = env.step(action)
-        state = next_state
-        print(next_state, reward, done) 
+    env.set_params()
+
+    print(env.option_delta_path)
+
+    # state = env.reset()
+    # for _ in range(50):
+    #     pt, ttm, nt = state
+    #     action = env.take_action(ttm, nt)
+    #     pervious_state = state
+    #     next_state, reward, done = env.step(action)
+    #     state = next_state
+    #     print(next_state, reward, done) 
 
 
