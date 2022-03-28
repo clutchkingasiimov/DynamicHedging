@@ -41,7 +41,10 @@ class TradingEnv(gym.Env,OptionSimulation):
 
 
     def set_params(self):
-        #can add a maturity term
+        '''
+        Method to be invoked before starting the training in order to set the parameters
+
+        '''
         self.sim_prices = super().GBM(50,0.01,time_increment=1)
         self.days_to_expiry_normalized = self.ttm/self.trading_days #Only to be used for the calculation of BS call price
         self.days_to_expiry = self.ttm #Creates an array of days left to expiry 
@@ -90,7 +93,7 @@ class TradingEnv(gym.Env,OptionSimulation):
             t: Time index 't'
             nt: Number of shares held at time 't'
         '''
-        return -100 * round(self.delta(t)) - nt    
+        return (-100 * round(self.delta(t),1)) - nt
     
     def reset(self):
         '''
@@ -116,8 +119,15 @@ class TradingEnv(gym.Env,OptionSimulation):
         return self.state
     
     def delta(self, t):
+        '''
+        Computes the option delta at time 't'
+
+        Parameters: 
+            t: The time index 't'
+        '''
         #Returns the option delta 
         delta = self.option_delta_path[self.path, t]
+        # delta = self.option_price_path[self.path, 49] - self.option_price_path[self.path, t]
         return delta
 
     def step(self,action):
@@ -159,28 +169,16 @@ class TradingEnv(gym.Env,OptionSimulation):
         #     done = 0
 
     def option_pnl(self,action):
+        '''
+        Computes the option PnL
+
+        Parameters: 
+            action: The action taken by the agent (The number of shares to hold)
+        '''
         self.option_t += 1
         option_price = round(self.option_price_path[self.path,self.option_t],2)
         profit_option = action * option_price
         return profit_option
          
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt 
-    env = TradingEnv(init_price=100,sample_size=1,num_contracts=1,multiplier=1.0,
-    tick_size=0.1,kappa=0.1)
-
-    env.set_params()
-
-    print(env.option_delta_path)
-
-    # state = env.reset()
-    # for _ in range(50):
-    #     pt, ttm, nt = state
-    #     action = env.take_action(ttm, nt)
-    #     pervious_state = state
-    #     next_state, reward, done = env.step(action)
-    #     state = next_state
-    #     print(next_state, reward, done) 
 
 
