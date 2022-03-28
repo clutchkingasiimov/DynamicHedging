@@ -3,11 +3,10 @@ from agent.dqn import DQN
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt 
-import seaborn as sns
 from tqdm import tqdm
 
 #Create the environment
-env = TradingEnv(init_price=100,sample_size=30_000,num_contracts=1,multiplier=1.0,
+env = TradingEnv(init_price=100,sample_size=1,num_contracts=1,multiplier=1.0,
 tick_size=0.1,kappa=0.1)
 
 STATE_SPACE = env.state_space
@@ -26,7 +25,6 @@ stock_pnl = []
 option_pnl = []
 costs = []
 total_pnl = []
-rewards = []
 
 for e in tqdm(range(EPISODES),desc="Episode"):
     done = False
@@ -34,9 +32,12 @@ for e in tqdm(range(EPISODES),desc="Episode"):
     state = np.reshape(state, [1, STATE_SPACE])
     score = 0 
 
+    t = 1
     while not done: 
         #Make prediction of the optimal action 
+        # action = env.take_action(t,state[0][2]) 
         action = agent.initialize_agent(state)
+        # print(action)
         next_state, reward, done = env.step(action)
 
         #Store all the outputs
@@ -45,7 +46,7 @@ for e in tqdm(range(EPISODES),desc="Episode"):
         trading_cost = env.cost_of_trade(next_state[2])
         stock_position.append(next_state[2])
         total_pnl.append(option_profit+stock_profit)
-        rewards.append(reward)
+        # rewards.append(reward)
 
         #Transition to next state
         next_state = np.reshape(next_state, [1, STATE_SPACE])
@@ -56,22 +57,21 @@ for e in tqdm(range(EPISODES),desc="Episode"):
         stock_pnl.append(stock_profit)
         option_pnl.append(option_profit)
         costs.append(trading_cost)
+        t += 1
 
-
-# plt.plot(stock_position,color='blue')
-# plt.plot(stock_pnl,color='red')
-# plt.plot(option_pnl,color='green')
-# plt.plot(costs,color='orange')
-# plt.plot(total_pnl,color='purple')
-# plt.xlabel('Days')
-# plt.ylabel('Value')
+plt.plot(stock_position,color='blue')
+plt.plot(stock_pnl,color='red')
+plt.plot(option_pnl,color='green')
+plt.plot(costs,color='orange')
+plt.plot(total_pnl,color='purple')
+plt.xlabel('Days')
+plt.ylabel('Value')
 # plt.plot(rewards)
 # pnl = pd.DataFrame({'Stock_PnL': stock_pnl,'Option_PnL': option_pnl,'Total_PnL':total_pnl,
 # 'Costs':costs})
 
-# pnl.to_csv('pnl.csv')
-# plt.legend(['Stock Position','Stock PnL','Option PnL','Trading Costs','Total PnL'])
-# plt.show()
+plt.legend(['Stock Position','Stock PnL','Option PnL','Trading Costs','Total PnL'])
+plt.show()
 
 
 print('Done!')
