@@ -1,9 +1,7 @@
-from unicodedata import name
 import random 
 import numpy as np
 from scipy.stats import norm
 
- 
 class OptionSimulation:
     seed_state = 10 #Seed state for all the simulations 
     trading_days = 252
@@ -82,6 +80,7 @@ class OptionSimulation:
         
         call_price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
         call_delta = np.exp(-q * T) * norm.cdf(d1)
+        # call_delta = norm.cdf(d1)
         
         return call_price, call_delta
 
@@ -135,11 +134,9 @@ if __name__ == "__main__":
     sim_prices = optsim.GBM(50,0.05,time_increment=1)
     days_to_expiry = optsim.ttm/optsim.trading_days #Get the days to expiry array 
     call_prices, call_deltas = optsim.BS_call(days_to_expiry,sim_prices,100,0.05,0,0)
-    print(sim_prices.shape)
-    print(days_to_expiry.shape)
-    print(optsim.ttm)
-
-    plt.plot(call_prices[0])
+    plt.plot(call_deltas[0])
     plt.show()
+    # plt.plot(days_to_expiry)
+    # print(optsim.ttm)
 
     
